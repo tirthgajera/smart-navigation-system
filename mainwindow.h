@@ -11,6 +11,8 @@
 #include <QPdfWriter>
 #include <QPainter>
 #include <QFileDialog>
+#include "graph.h"
+#include "tripmanager.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -39,6 +41,8 @@ private slots:
     void drawBFSLevel();
 
 private:
+    Graph graphManager;
+    TripManager tripManager;
     int finalDistance = 0;
     QString finalRoute;
     int finalWaypoint = -1;
@@ -47,35 +51,22 @@ private:
     QGraphicsScene *scene;
     QMap<int,QPointF> cityPosition;
     void drawMap(const std::vector<int>& path, int src, int dest);
-    std::vector<std::vector<std::pair<int,int>>> graph;
-    std::vector<QString> cities;
     QTimer *animationTimer;
     std::vector<int> dfsOrder;
-    std::vector<bool> visitedDFS;
-    void DFS(int node);
-    std::vector<std::vector<int>> bfsLevels;
 
+    std::vector<std::vector<int>> bfsLevels;
     QTimer *bfsTimer;
 
     int bfsLevelIndex = 0;
 
     bool bfsBlinkState = false;
-    std::vector<int> parentDSU;
-    std::vector<int> rankDSU;
     void restoreRoute();
-    int Find(int x);
-    void Union(int a,int b);
     std::vector<std::pair<int,int>> mstEdges;
     std::vector<int> currentPath;
+    std::vector<int> shortestPath;
     int animationIndex;
-    void initializeGraph();
     void on_backButton_clicked();
-    bool shortestPath(
-        int src,
-        int dest,
-        std::vector<int> &path,
-        int &distance
-        );
+
 };
 
 #endif

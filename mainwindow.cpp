@@ -55,7 +55,6 @@ MainWindow::MainWindow(QWidget *parent)
                                        {
                                            restoreRoute();
                                        });
-                    return;
                 }
 
                 std::vector<int> temp(
@@ -78,9 +77,16 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->routeGraphicsView->setRenderHint(QPainter::Antialiasing);
 
-    initializeGraph();
+    graphManager.initializeGraph();
+    cityPosition[0] = QPointF(30,180);    // Chandigarh
+    cityPosition[1] = QPointF(90,120);    // Shimla
+    cityPosition[2] = QPointF(170,120);   // Narkanda
+    cityPosition[3] = QPointF(240,180);   // Rampur
+    cityPosition[4] = QPointF(310,120);   // Kalpa
+    cityPosition[5] = QPointF(360,180);   // Kaza
+    cityPosition[6] = QPointF(170,280);   // Manali
     ui->viaComboBox->addItem("None");
-    for(auto &city : cities)
+    for(auto &city : graphManager.getCities())
     {
         ui->sourcecomboBox->addItem(city);
         ui->destinationCombobox->addItem(city);
@@ -235,43 +241,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::initializeGraph()
-{
-    cities = {
-        "Chandigarh",
-        "Shimla",
-        "Narkanda",
-        "Rampur",
-        "Kalpa",
-        "Kaza",
-        "Manali"
-    };
 
-    int n = cities.size();
-    graph.resize(n);
-
-    auto addEdge = [&](int u,int v,int w)
-    {
-        graph[u].push_back({v,w});
-        graph[v].push_back({u,w});
-    };
-
-    addEdge(0,1,120);
-    addEdge(1,2,65);
-    addEdge(2,3,40);
-    addEdge(3,4,90);
-    addEdge(4,5,200);
-    addEdge(5,6,180);
-    addEdge(6,5,180);
-    addEdge(1,6,250);
-    cityPosition[0] = QPointF(30,180);    // Chandigarh
-    cityPosition[1] = QPointF(90,120);    // Shimla
-    cityPosition[2] = QPointF(170,120);   // Narkanda
-    cityPosition[3] = QPointF(240,180);   // Rampur
-    cityPosition[4] = QPointF(310,120);   // Kalpa
-    cityPosition[5] = QPointF(360,180);   // Kaza
-    cityPosition[6] = QPointF(170,280);   // Manali
-}
 void MainWindow::on_findroutebutton_clicked()
 {
     scene->clear();
@@ -298,7 +268,7 @@ void MainWindow::on_findroutebutton_clicked()
 
     if(via == -1)
     {
-        if(!shortestPath(src,dest,path,totalDistance))
+        if(!graphManager.shortestPath(src,dest,path,totalDistance))
         {
             QMessageBox::warning(
                 this,
@@ -313,7 +283,7 @@ void MainWindow::on_findroutebutton_clicked()
         vector<int> path1,path2;
         int d1,d2;
 
-        if(!shortestPath(src,via,path1,d1))
+        if(!graphManager.shortestPath(src,via,path1,d1))
         {
             QMessageBox::warning(
                 this,
@@ -323,7 +293,7 @@ void MainWindow::on_findroutebutton_clicked()
             return;
         }
 
-        if(!shortestPath(via,dest,path2,d2))
+        if(!graphManager.shortestPath(via,dest,path2,d2))
         {
             QMessageBox::warning(
                 this,
@@ -350,7 +320,7 @@ void MainWindow::on_findroutebutton_clicked()
 
     for(size_t i=0;i<path.size();i++)
     {
-        route += cities[path[i]];
+        route += graphManager.getCities()[path[i]];
 
         if(i+1<path.size())
             route += "\n↓\n";
@@ -364,7 +334,7 @@ void MainWindow::on_findroutebutton_clicked()
     scene->clear();
     animationTimer->stop();
     currentPath = path;
-
+    shortestPath = path;
     animationIndex = 0;
 
     animationTimer->start(500);
@@ -425,53 +395,17 @@ void MainWindow::on_findroutebutton_clicked()
 }
 void MainWindow::on_saveTripButton_clicked()
 {
-    QFile file("trip_history.txt");
-
-    if(file.open(QIODevice::Append | QIODevice::Text))
+    if(tripManager.saveTrip(
+            ui->sourcecomboBox->currentText(),
+            ui->destinationCombobox->currentText(),
+            ui->Distance->text(),
+            ui->mileageLineEdit->text(),
+            ui->fuelPriceLineEdit->text(),
+            ui->fuelCostLabel->text(),
+            ui->timeLabel->text(),
+            finalRoute))
     {
-        QTextStream out(&file);
-
-        out << "============================\n";
-        out << "Date : "
-            << QDateTime::currentDateTime()
-                   .toString()
-            << "\n";
-
-        out << "Source : "
-            << ui->sourcecomboBox->currentText()
-            << "\n";
-
-        out << "Destination : "
-            << ui->destinationCombobox->currentText()
-            << "\n";
-
-        out << ui->Distance->text()
-            << "\n";
-
-        out << "Mileage : "
-            << ui->mileageLineEdit->text()
-            << "\n";
-
-        out << "Fuel Price : "
-            << ui->fuelPriceLineEdit->text()
-            << "\n";
-
-        out << ui->fuelCostLabel->text()
-            << "\n";
-
-        out << ui->timeLabel->text()
-            << "\n";
-
-        out << "Route:\n";
-
-        out << finalRoute << "\n\n";
-        file.close();
-
-        QMessageBox::information(
-            this,
-            "Success",
-            "✅ Trip Saved Successfully!"
-            );
+        QMessageBox::information(this,"Success","Trip Saved Successfully!");
     }
 }
 void MainWindow::on_calculateFuelButton_clicked()
@@ -566,9 +500,9 @@ void MainWindow::drawMap(const std::vector<int>& path, int src, int dest)
     //     return false;
     // };
     // Draw all roads
-    for(int u = 0; u < graph.size(); u++)
+    for(int u = 0; u < graphManager.getGraph().size(); u++)
     {
-        for(auto edge : graph[u])
+        for(auto edge : graphManager.getGraph()[u])
         {
             int v = edge.first;
 
@@ -617,7 +551,7 @@ void MainWindow::drawMap(const std::vector<int>& path, int src, int dest)
     }
 
     // Draw all cities
-    for(int i = 0; i < cities.size(); i++)
+    for(int i = 0; i < graphManager.getCities().size(); i++)
     {
         QPointF p = cityPosition[i];
 
@@ -639,7 +573,7 @@ void MainWindow::drawMap(const std::vector<int>& path, int src, int dest)
             brush
             );
         QGraphicsTextItem *cityName =
-            scene->addText(cities[i]);
+            scene->addText(graphManager.getCities()[i]);
         QFont font;
         font.setBold(true);
         font.setPointSize(8);
@@ -649,67 +583,7 @@ void MainWindow::drawMap(const std::vector<int>& path, int src, int dest)
         cityName->setPos(p.x()-20,p.y()+8);
     }
 }
-bool MainWindow::shortestPath(
-    int src,
-    int dest,
-    vector<int> &path,
-    int &totalDistance)
-{
-    int n = graph.size();
 
-    vector<int> dist(n,INT_MAX);
-    vector<int> parent(n,-1);
-
-    priority_queue<
-        pair<int,int>,
-        vector<pair<int,int>>,
-        greater<pair<int,int>>
-        > pq;
-
-    dist[src]=0;
-
-    pq.push({0,src});
-
-    while(!pq.empty())
-    {
-        auto current = pq.top();
-        pq.pop();
-
-        int d = current.first;
-        int u = current.second;
-
-        if(d > dist[u])
-            continue;
-
-        for(auto edge : graph[u])
-        {
-            int v = edge.first;
-            int w = edge.second;
-
-            if(dist[u] + w < dist[v])
-            {
-                dist[v] = dist[u] + w;
-                parent[v] = u;
-
-                pq.push({dist[v],v});
-            }
-        }
-    }
-
-    if(dist[dest] == INT_MAX)
-        return false;
-
-    path.clear();
-
-    for(int v=dest;v!=-1;v=parent[v])
-        path.push_back(v);
-
-    reverse(path.begin(),path.end());
-
-    totalDistance = dist[dest];
-
-    return true;
-}
 void MainWindow::on_backButton_clicked()
 {
     animationTimer->stop();
@@ -747,149 +621,102 @@ void MainWindow::on_recentListWidget_itemClicked(QListWidgetItem *item)
         ui->destinationCombobox->setCurrentText(parts[2]);
     }
 }
-void MainWindow::DFS(int node)
-{
-    visitedDFS[node] = true;
+// void MainWindow::DFS(int node)(
+// {
+//     visitedDFS[node] = true;
 
-    dfsOrder.push_back(node);
+//     dfsOrder.push_back(node);
 
-    for(auto edge : graph[node])
-    {
-        int next = edge.first;
+//     for(auto edge : graph[node])
+//     {
+//         int next = edge.first;
 
-        if(!visitedDFS[next])
-        {
-            DFS(next);
-        }
-    }
+//         if(!visitedDFS[next])
+//         {
+//             graphManager.DFS(next);
+//         }
+//     }
+// }
+ void MainWindow::on_dfsButton_clicked()
+ {
+     dfsOrder.clear();
+
+     int start = ui->sourcecomboBox->currentIndex();
+
+     graphManager.DFS(start, dfsOrder);
+
+     currentPath = dfsOrder;
+
+     animationIndex = 0;
+
+     animationTimer->start(600);
 }
-void MainWindow::on_dfsButton_clicked()
-{
-    dfsOrder.clear();
+// int MainWindow::Find(int x)
+// {
+//     if(parentDSU[x]==x)
+//         return x;
 
-    visitedDFS.assign(graph.size(), false);
+//     return parentDSU[x]=Find(parentDSU[x]);
 
-    int start = ui->sourcecomboBox->currentIndex();
 
-    DFS(start);
+// void MainWindow::Union(int a,int b)
+// {
+//     a=Find(a);
+//     b=Find(b);
 
-    scene->clear();
+//     if(a==b)
+//         return;
 
-    currentPath.clear();
+//     if(rankDSU[a]<rankDSU[b])
+//         swap(a,b);
 
-    animationTimer->stop();
+//     parentDSU[b]=a;
 
-    currentPath = dfsOrder;
-
-    animationIndex = 0;
-
-    animationTimer->start(600);
-}
-int MainWindow::Find(int x)
-{
-    if(parentDSU[x]==x)
-        return x;
-
-    return parentDSU[x]=Find(parentDSU[x]);
-}
-
-void MainWindow::Union(int a,int b)
-{
-    a=Find(a);
-    b=Find(b);
-
-    if(a==b)
-        return;
-
-    if(rankDSU[a]<rankDSU[b])
-        swap(a,b);
-
-    parentDSU[b]=a;
-
-    if(rankDSU[a]==rankDSU[b])
-        rankDSU[a]++;
-}
+//     if(rankDSU[a]==rankDSU[b])
+//         rankDSU[a]++;
+// }
 void MainWindow::on_mstButton_clicked()
 {
     animationTimer->stop();
+    bfsTimer->stop();
 
-    currentPath.clear();
-
-    finalWaypoint = -1;
     mstEdges.clear();
 
-    struct Edge
-    {
-        int u,v,w;
-    };
-
-    std::vector<Edge> edges;
-
-    for(int u=0;u<graph.size();u++)
-    {
-        for(auto edge : graph[u])
-        {
-            if(u < edge.first)
-            {
-                edges.push_back(
-                    {u,edge.first,edge.second});
-            }
-        }
-    }
-
-    sort(edges.begin(),edges.end(),
-         [](Edge a,Edge b)
-         {
-             return a.w < b.w;
-         });
-
-    parentDSU.resize(graph.size());
-    rankDSU.assign(graph.size(),0);
-
-    for(int i=0;i<graph.size();i++)
-        parentDSU[i]=i;
-
-    int totalCost=0;
-
-    for(auto e : edges)
-    {
-        if(Find(e.u)!=Find(e.v))
-        {
-            Union(e.u,e.v);
-
-            mstEdges.push_back(
-                {e.u,e.v});
-
-            totalCost += e.w;
-        }
-    }
-
-    currentPath.clear();
+    int totalCost = graphManager.MST(mstEdges);
 
     drawMap({},-1,-1);
 
-    QString msg =
-        "Minimum Spanning Tree (Kruskal)\n\n";
+    QString result = "Minimum Spanning Tree\n\n";
 
-    msg += "Total Road Network Cost : "
-           + QString::number(totalCost)
-           + " km\n\n";
-
-    msg += "Selected Roads:\n";
-
-    for(auto e : mstEdges)
+    for(auto edge : mstEdges)
     {
-        msg += cities[e.first]
-               + "  ↔  "
-               + cities[e.second]
-               + "\n";
+        int weight = 0;
+
+        for(auto e : graphManager.getGraph()[edge.first])
+        {
+            if(e.first == edge.second)
+            {
+                weight = e.second;
+                break;
+            }
+        }
+
+        result += graphManager.getCities()[edge.first]
+                  + " ↔ "
+                  + graphManager.getCities()[edge.second]
+                  + " ("
+                  + QString::number(weight)
+                  + " km)\n";
     }
 
-    QMessageBox::information(
-        this,
-        "Minimum Road Network",
-        msg);
-    QTimer::singleShot(1500, this, [this]()
+    result += "\n----------------------\n";
+    result += "Total Cost : " + QString::number(totalCost) + " km";
+
+    QMessageBox::information(this,"Minimum Spanning Tree",result);
+
+    mstEdges.clear();
+
+    QTimer::singleShot(300, this, [this]()
                        {
                            restoreRoute();
                        });
@@ -1003,43 +830,9 @@ void MainWindow::on_bfsButton_clicked()
 
     bfsBlinkState = false;
 
-    std::vector<bool> visited(graph.size(),false);
+    int start = ui->sourcecomboBox->currentIndex();
 
-    std::queue<int> q;
-
-    int src = ui->sourcecomboBox->currentIndex();
-
-    q.push(src);
-
-    visited[src]=true;
-
-    while(!q.empty())
-    {
-        int sz=q.size();
-
-        std::vector<int> level;
-
-        while(sz--)
-        {
-            int u=q.front();
-            q.pop();
-
-            level.push_back(u);
-
-            for(auto edge:graph[u])
-            {
-                int v=edge.first;
-
-                if(!visited[v])
-                {
-                    visited[v]=true;
-                    q.push(v);
-                }
-            }
-        }
-
-        bfsLevels.push_back(level);
-    }
+    graphManager.BFSLevels(start,bfsLevels);
 
     bfsTimer->start(700);
 }
@@ -1047,9 +840,9 @@ void MainWindow::drawBFSLevel()
 {
     scene->clear();
 
-    for(int u=0;u<graph.size();u++)
+    for(int u=0;u<graphManager.getGraph().size();u++)
     {
-        for(auto edge:graph[u])
+        for(auto edge:graphManager.getGraph()[u])
         {
             if(u<edge.first)
             {
@@ -1063,7 +856,7 @@ void MainWindow::drawBFSLevel()
         }
     }
 
-    for(int i=0;i<cities.size();i++)
+    for(int i=0;i<graphManager.getCities().size();i++)
     {
         QColor color=Qt::blue;
 
@@ -1098,7 +891,7 @@ void MainWindow::drawBFSLevel()
             QPen(Qt::black),
             QBrush(color));
 
-        auto txt=scene->addText(cities[i]);
+        auto txt=scene->addText(graphManager.getCities()[i]);
 
         txt->setPos(
             cityPosition[i].x()-25,
@@ -1127,8 +920,10 @@ void MainWindow::restoreRoute()
     animationTimer->stop();
     bfsTimer->stop();
 
+    currentPath = shortestPath;
+
     drawMap(
-        currentPath,
+        shortestPath,
         ui->sourcecomboBox->currentIndex(),
         ui->destinationCombobox->currentIndex()
         );
