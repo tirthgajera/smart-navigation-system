@@ -28,6 +28,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->vehicleComboBox->addItem("Bike");
     ui->vehicleComboBox->addItem("Car");
     ui->vehicleComboBox->addItem("Bus");
+    ui->fuelTypeComboBox->addItem("Petrol");
+    ui->fuelTypeComboBox->addItem("Diesel");
+    ui->fuelTypeComboBox->addItem("CNG");
+    ui->fuelTypeComboBox->addItem("Electric");
     ui->trafficComboBox->addItem("Normal");
     ui->trafficComboBox->addItem("Moderate");
     ui->trafficComboBox->addItem("Heavy");
@@ -38,6 +42,32 @@ MainWindow::MainWindow(QWidget *parent)
     routeTimer = new QTimer(this);
     bfsTimer = new QTimer(this);
     setWindowState(Qt::WindowMaximized);
+    connect(ui->fuelTypeComboBox,
+            &QComboBox::currentTextChanged,
+            this,
+            [=](QString fuel)
+            {
+                if(fuel=="Electric")
+                {
+                    ui->mileageLineEdit->setPlaceholderText("km per unit");
+                }
+                else
+                {
+                    ui->mileageLineEdit->setPlaceholderText("km per litre");
+                }
+                if(fuel=="Petrol")
+                    ui->fuelPriceLineEdit->setText("95");
+
+                else if(fuel=="Diesel")
+                    ui->fuelPriceLineEdit->setText("88");
+
+                else if(fuel=="CNG")
+                    ui->fuelPriceLineEdit->setText("78");
+
+                else if(fuel=="Electric")
+                    ui->fuelPriceLineEdit->setText("8");
+            });
+
     connect(routeTimer,
             &QTimer::timeout,
             this,
@@ -176,7 +206,8 @@ MainWindow::MainWindow(QWidget *parent)
     //         &QPushButton::clicked,
     //         this,
     //         &MainWindow::on_mstButton_clicked);
-    this->setWindowTitle("Smart Navigation System");
+    this->setWindowTitle(
+        "Smart Navigation System v2.0 | Graph Algorithms Visualizer");
     ui->Distance->setStyleSheet(
         "color:#009933;"
         "font-size:28px;"
@@ -208,12 +239,16 @@ MainWindow::MainWindow(QWidget *parent)
         "color:black;"
         "}"
         );
+
     QStringList defaults = {
         "Chandigarh → Shimla",
-        "Shimla → Narkanda",
         "Chandigarh → Manali",
+        "Shimla → Kufri",
+        "Shimla → Narkanda",
+        "Manali → Keylong",
         "Kalpa → Kaza",
-        "Kaza → manali"
+        "Kaza → Tabo",
+        "Dharamshala → Hamirpur"
     };
     connect(ui->recentListWidget,
             &QListWidget::itemClicked,
@@ -232,15 +267,21 @@ MainWindow::MainWindow(QWidget *parent)
         recentSearches.push(s);
         ui->recentListWidget->addItem(s);
     }
+
     this->setStyleSheet(
+
+        "QMainWindow{"
+        "background:#F5F7FB;"
+        "}"
+
         "QGroupBox{"
-        "border:2px solid #4A90E2;"
-        "border-radius:15px;"
+        "border:2px solid #3B82F6;"
+        "border-radius:16px;"
         "margin-top:12px;"
+        "background:white;"
         "font-size:16px;"
         "font-weight:bold;"
-        "color:#1F3A93;"
-        "background:white;"
+        "color:#1E3A8A;"
         "}"
 
         "QGroupBox::title{"
@@ -250,49 +291,85 @@ MainWindow::MainWindow(QWidget *parent)
         "background:white;"
         "}"
 
-        "QPushButton {"
-        "background-color:#1976D2;"
-        "color:white;"
+        "QComboBox{"
+        "background:white;"
+        "border:1px solid #CBD5E1;"
         "border-radius:10px;"
         "padding:8px;"
-        "font-weight:bold;"
+        "font-size:14px;"
         "}"
 
-        "QPushButton:hover {"
-        "background-color:#1565C0;"
+        "QComboBox:hover{"
+        "border:2px solid #3B82F6;"
         "}"
 
-        "QLineEdit,QComboBox,QTextEdit {"
-        "border:1px solid #cccccc;"
-        "border-radius:8px;"
-        "padding:5px;"
-        "}"
-        "QMainWindow {"
-        "background-color:#f4f6f9;"
+        "QComboBox::drop-down{"
+        "border:none;"
         "}"
 
-        "QPushButton {"
-        "background-color:#1976D2;"
-        "color:white;"
-        "font-size:10px;"
-        "font-weight:bold;"
-        "padding:8px;"
-        "border-radius:6px;"
-        "}"
-
-        "QPushButton:hover {"
-        "background-color:#1565C0;"
-        "}"
-
-        "QComboBox {"
-        "padding:5px;"
-        "font-size:13px;"
-        "}"
-
-        "QTextEdit {"
+        "QLineEdit{"
         "background:white;"
+        "border:1px solid #CBD5E1;"
+        "border-radius:10px;"
+        "padding:8px;"
+        "font-size:14px;"
+        "}"
+
+        "QPushButton{"
+        "background:#1976D2;"
+        "color:white;"
+        "border-radius:10px;"
+        "padding:10px;"
+        "font-size:14px;"
+        "font-weight:bold;"
+        "}"
+
+        "QPushButton:hover{"
+        "background:#1565C0;"
+        "}"
+
+        "QPushButton:pressed{"
+        "background:#0D47A1;"
+        "}"
+
+        "QListWidget{"
+        "background:white;"
+        "border:2px solid #3B82F6;"
+        "border-radius:12px;"
+        "padding:6px;"
+        "font-size:14px;"
+        "}"
+
+        "QListWidget::item{"
+        "padding:10px;"
+        "border-radius:8px;"
+        "}"
+
+        "QListWidget::item:hover{"
+        "background:#EDF5FF;"
+        "}"
+
+        "QListWidget::item:selected{"
+        "background:#D6E9FF;"
+        "color:black;"
+        "}"
+
+        "QTextBrowser{"
+        "background:#F8FAFC;"
+        "border:2px solid #4A90E2;"
+        "border-radius:12px;"
+        "padding:12px;"
         "font-size:13px;"
         "}"
+
+        "QTextEdit{"
+        "background:white;"
+        "border:1px solid #CBD5E1;"
+        "border-radius:10px;"
+        "padding:8px;"
+        "font-size:13px;"
+        "}"
+
         );
 
 }
@@ -427,7 +504,7 @@ void MainWindow::on_findroutebutton_clicked()
     search += " → " + ui->destinationCombobox->currentText();
 
     recentSearches.push(search);
-    if(recentSearches.size() > 5)
+    if(recentSearches.size() > 8)
     {
         recentSearches.pop();
     }
@@ -485,7 +562,7 @@ void MainWindow::on_calculateFuelButton_clicked()
 
     double fuelPrice =
         ui->fuelPriceLineEdit->text().toDouble();
-
+    QString fuelType = ui->fuelTypeComboBox->currentText();
     if(mileage <= 0)
         return;
 
@@ -496,7 +573,8 @@ void MainWindow::on_calculateFuelButton_clicked()
         fuelNeeded * fuelPrice;
 
     ui->fuelCostLabel->setText(
-        "Fuel Cost : ₹" +
+        fuelType +
+        " Cost : ₹" +
         QString::number(fuelCost,'f',2)
         );
 }
@@ -536,6 +614,7 @@ void MainWindow::on_calculateTimeButton_clicked()
 void MainWindow::drawMap(const std::vector<int>& path, int src, int dest)
 {
     scene->clear();
+
     auto isHighlightedEdge = [&](int u,int v)
     {
         // Route edges
@@ -557,39 +636,27 @@ void MainWindow::drawMap(const std::vector<int>& path, int src, int dest)
         return false;
     };
 
-    // auto isHighlightedEdge = [&](int u, int v)
-    // {
-    //     for(size_t i = 0; i + 1 < path.size(); i++)
-    //     {
-    //         if((path[i] == u && path[i+1] == v) ||
-    //             (path[i] == v && path[i+1] == u))
-    //         {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // };
-    // Draw all roads
-    for(int u = 0; u < graphManager.getGraph().size(); u++)
+    // ---------------- DRAW ROADS ----------------
+
+    for(int u=0;u<graphManager.getGraph().size();u++)
     {
         for(auto edge : graphManager.getGraph()[u])
         {
-            int v = edge.first;
+            int v=edge.first;
 
-            // Avoid drawing the same road twice
-            if(u < v)
+            if(u<v)
             {
                 QPen pen;
 
                 if(isHighlightedEdge(u,v))
                 {
-                    pen = QPen(QColor(0,120,255),4);
+                    pen=QPen(QColor(0,120,255),4);
                     pen.setCapStyle(Qt::RoundCap);
                     pen.setJoinStyle(Qt::RoundJoin);
                 }
                 else
                 {
-                    pen = QPen(Qt::lightGray,1);
+                    pen=QPen(Qt::lightGray,1);
                 }
 
                 scene->addLine(
@@ -597,67 +664,112 @@ void MainWindow::drawMap(const std::vector<int>& path, int src, int dest)
                     cityPosition[u].y(),
                     cityPosition[v].x(),
                     cityPosition[v].y(),
-                    pen
-                    );
+                    pen);
 
-                // Distance label
-                int midX = (cityPosition[u].x() + cityPosition[v].x()) / 2;
-                int midY = (cityPosition[u].y() + cityPosition[v].y()) / 2;
+                // Distance Label
+                int midX=(cityPosition[u].x()+cityPosition[v].x())/2;
+                int midY=(cityPosition[u].y()+cityPosition[v].y())/2;
 
-                QGraphicsTextItem *distance =
+                QGraphicsTextItem *distance=
                     scene->addText(QString::number(edge.second));
 
                 distance->setDefaultTextColor(Qt::darkGreen);
 
-                QFont font;
-                font.setPointSize(8);
-                font.setBold(true);
+                QFont f;
+                f.setPointSize(8);
+                f.setBold(true);
 
-                distance->setFont(font);
+                distance->setFont(f);
 
-                distance->setPos(midX-5, midY-25);
+                distance->setPos(midX-5,midY-22);
             }
         }
     }
 
-    // Draw all cities
-    for(int i = 0; i < graphManager.getCities().size(); i++)
+    // ---------------- DRAW CITIES ----------------
+
+    for(int i=0;i<graphManager.getCities().size();i++)
     {
-        QPointF p = cityPosition[i];
+        QPointF p=cityPosition[i];
 
-        QBrush brush(QColor(70,130,255));
+        QColor nodeColor(70,130,255);
+        QColor textColor(Qt::black);
 
-        if(i == src)
-            brush=QBrush(QColor(0,220,0));
+        if(i==src)
+        {
+            nodeColor=QColor(46,204,113);
+            textColor=QColor(39,174,96);
+        }
         else if(i==finalWaypoint)
-            brush=QBrush(QColor(255,170,0));
-        else if(i == dest)
-            brush = QBrush(QColor(255,50,50));
+        {
+            nodeColor=QColor(243,156,18);
+            textColor=QColor(211,84,0);
+        }
+        else if(i==dest)
+        {
+            nodeColor=QColor(231,76,60);
+            textColor=QColor(192,57,43);
+        }
 
+        // City Node
         scene->addEllipse(
-            p.x()-6,
-            p.y()-6,
-            12,
-            12,
-            QPen(Qt::black),
-            brush
-            );
-        QGraphicsTextItem *cityName =
+            p.x()-7,
+            p.y()-7,
+            14,
+            14,
+            QPen(Qt::black,1),
+            QBrush(nodeColor));
+
+        // City Name
+        QGraphicsTextItem *cityName=
             scene->addText(graphManager.getCities()[i]);
+
         QFont font;
+        font.setPointSize(9);
         font.setBold(true);
-        font.setPointSize(8);
 
         cityName->setFont(font);
-        cityName->setDefaultTextColor(Qt::black);
-        cityName->setPos(p.x()-20,p.y()+8);
-        ui->routeGraphicsView->fitInView(
-            scene->itemsBoundingRect(),
-            Qt::KeepAspectRatio
-            );
-    }
-}
+        cityName->setDefaultTextColor(textColor);
 
+        cityName->setPos(
+            p.x()-25,
+            p.y()+10);
+
+        // Source / Waypoint / Destination label
+        if(i==src || i==finalWaypoint || i==dest)
+        {
+            QString tag;
+
+            if(i==src)
+                tag="Source";
+
+            else if(i==finalWaypoint)
+                tag="Waypoint";
+
+            else
+                tag="Destination";
+
+            QGraphicsTextItem *legend=
+                scene->addText(tag);
+
+            QFont small;
+            small.setPointSize(7);
+            small.setItalic(true);
+
+            legend->setFont(small);
+            legend->setDefaultTextColor(textColor);
+
+            legend->setPos(
+                p.x()-20,
+                p.y()+24);
+        }
+    }
+
+    // Auto Fit
+    ui->routeGraphicsView->fitInView(
+        scene->itemsBoundingRect(),
+        Qt::KeepAspectRatio);
+}
 void MainWindow::on_backButton_clicked()
 {
     animationTimer->stop();
