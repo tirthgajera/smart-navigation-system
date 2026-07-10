@@ -3,7 +3,12 @@
 
 #include <vector>
 #include <QString>
-
+struct DFSStep
+{
+    int from;
+    int to;
+    bool forward;
+};
 class Graph
 {
 public:
@@ -18,7 +23,12 @@ public:
         int& distance
         );
 
-    void DFS(int start,std::vector<int>& order);
+    void DFS(int start, std::vector<int>& order);
+
+    void DFSAnimation(
+        int start,
+        std::vector<DFSStep>& steps
+        );
 
     void BFSLevels(
         int start,
@@ -47,7 +57,12 @@ private:
         std::vector<bool>& visited,
         std::vector<int>& order
         );
-
+    void dfsAnimationUtil(
+        int node,
+        int parent,
+        std::vector<bool>& visited,
+        std::vector<DFSStep>& steps
+        );
     int Find(int x,std::vector<int>& parent);
 
     void Union(

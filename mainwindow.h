@@ -52,8 +52,13 @@ private:
     QMap<int,QPointF> cityPosition;
     void drawMap(const std::vector<int>& path, int src, int dest);
     QTimer *animationTimer;
-    std::vector<int> dfsOrder;
+   std::vector<DFSStep> dfsSteps;
+   std::vector<int> dfsActivePath;
+   QTimer *routeTimer;
 
+   std::vector<int> routeAnimationPath;
+
+   int routeAnimationIndex = 0;
     std::vector<std::vector<int>> bfsLevels;
     QTimer *bfsTimer;
 

@@ -15,6 +15,7 @@
 #include <QGraphicsView>
 #include <QGraphicsEllipseItem>
 #include <QGraphicsLineItem>
+#include <QDebug>
 using namespace std;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -34,8 +35,31 @@ MainWindow::MainWindow(QWidget *parent)
     ui->fuelPriceLineEdit->setText("95");
     scene = new QGraphicsScene(this);
     animationTimer = new QTimer(this);
+    routeTimer = new QTimer(this);
     bfsTimer = new QTimer(this);
     setWindowState(Qt::WindowMaximized);
+    connect(routeTimer,
+            &QTimer::timeout,
+            this,
+            [=]()
+            {
+                if(routeAnimationIndex >= routeAnimationPath.size())
+                {
+                    routeTimer->stop();
+                    return;
+                }
+
+                std::vector<int> temp(
+                    routeAnimationPath.begin(),
+                    routeAnimationPath.begin()+routeAnimationIndex+1);
+
+                drawMap(
+                    temp,
+                    routeAnimationPath.front(),
+                    routeAnimationPath.back());
+
+                routeAnimationIndex++;
+            });
     connect(bfsTimer,
             &QTimer::timeout,
             this,
@@ -48,43 +72,80 @@ MainWindow::MainWindow(QWidget *parent)
             this,
             [=]()
             {
-                if(animationIndex >= currentPath.size())
+                if(animationIndex >= dfsSteps.size())
                 {
                     animationTimer->stop();
-                    QTimer::singleShot(1500, this, [this]()
+
+                    QTimer::singleShot(1200,this,[this]()
                                        {
                                            restoreRoute();
                                        });
+
+                    return;
                 }
 
-                std::vector<int> temp(
-                    currentPath.begin(),
-                    currentPath.begin() + animationIndex + 1);
+                static std::vector<int> dfsActivePath;
 
-                drawMap(
-                    temp,
-                    currentPath.front(),
-                    currentPath.back());
+                if(animationIndex==0)
+                    dfsActivePath.clear();
+
+                DFSStep step = dfsSteps[animationIndex];
+
+                if(step.forward)
+                {
+                    if(dfsActivePath.empty())
+                        dfsActivePath.push_back(step.from);
+
+                    dfsActivePath.push_back(step.to);
+                }
+                else
+                {
+                    if(!dfsActivePath.empty())
+                        dfsActivePath.pop_back();
+                }
+
+                if(dfsActivePath.empty())
+                {
+                    restoreRoute();
+                }
+                else
+                {
+                    drawMap(
+                        dfsActivePath,
+                        dfsActivePath.front(),
+                        dfsActivePath.back()
+                        );
+                }
 
                 animationIndex++;
             });
     ui->routeGraphicsView->setScene(scene);
-    ui->routeGraphicsView->setRenderHint(QPainter::Antialiasing);
-    ui->routeGraphicsView->setDragMode(QGraphicsView::ScrollHandDrag);
-    ui->routeGraphicsView->setTransformationAnchor(
-        QGraphicsView::AnchorUnderMouse);
-    scene->setSceneRect(0,0,400,320);
+    scene->setSceneRect(0,0,1300,900);
 
     ui->routeGraphicsView->setRenderHint(QPainter::Antialiasing);
 
     graphManager.initializeGraph();
-    cityPosition[0] = QPointF(30,180);    // Chandigarh
-    cityPosition[1] = QPointF(90,120);    // Shimla
-    cityPosition[2] = QPointF(170,120);   // Narkanda
-    cityPosition[3] = QPointF(240,180);   // Rampur
-    cityPosition[4] = QPointF(310,120);   // Kalpa
-    cityPosition[5] = QPointF(360,180);   // Kaza
-    cityPosition[6] = QPointF(170,280);   // Manali
+    qDebug() << "Cities =" << graphManager.getCities().size();
+    cityPosition[0]=QPointF(60,420);
+    cityPosition[1]=QPointF(110,390);
+    cityPosition[2]=QPointF(120,450);
+    cityPosition[3]=QPointF(220,360);
+    cityPosition[4]=QPointF(340,260);
+    cityPosition[5]=QPointF(420,220);
+    cityPosition[6]=QPointF(520,200);
+    cityPosition[7]=QPointF(640,260);
+    cityPosition[8]=QPointF(760,200);
+    cityPosition[9]=QPointF(860,180);
+    cityPosition[10]=QPointF(930,240);
+    cityPosition[11]=QPointF(1080,260);
+    cityPosition[12]=QPointF(1180,220);
+    cityPosition[13]=QPointF(1050,520);
+    cityPosition[14]=QPointF(860,610);
+    cityPosition[15]=QPointF(700,700);
+    cityPosition[16]=QPointF(470,690);
+    cityPosition[17]=QPointF(250,630);
+    cityPosition[18]=QPointF(250,770);
+    cityPosition[19]=QPointF(520,820);
     ui->viaComboBox->addItem("None");
     for(auto &city : graphManager.getCities())
     {
@@ -244,8 +305,14 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_findroutebutton_clicked()
 {
-    scene->clear();
+    dfsActivePath.clear();
     animationTimer->stop();
+    bfsTimer->stop();
+
+    animationIndex = 0;
+
+    dfsSteps.clear();
+    scene->clear();
     currentPath.clear();
     mstEdges.clear();
     animationIndex = 0;
@@ -335,9 +402,12 @@ void MainWindow::on_findroutebutton_clicked()
     animationTimer->stop();
     currentPath = path;
     shortestPath = path;
-    animationIndex = 0;
 
-    animationTimer->start(500);
+    routeAnimationPath = currentPath;
+
+    routeAnimationIndex = 0;
+
+    routeTimer->start(450);
     // ui->routeGraphicsView->fitInView(
     //     scene->itemsBoundingRect(),
     //     Qt::KeepAspectRatio
@@ -581,6 +651,10 @@ void MainWindow::drawMap(const std::vector<int>& path, int src, int dest)
         cityName->setFont(font);
         cityName->setDefaultTextColor(Qt::black);
         cityName->setPos(p.x()-20,p.y()+8);
+        ui->routeGraphicsView->fitInView(
+            scene->itemsBoundingRect(),
+            Qt::KeepAspectRatio
+            );
     }
 }
 
@@ -637,19 +711,22 @@ void MainWindow::on_recentListWidget_itemClicked(QListWidgetItem *item)
 //         }
 //     }
 // }
- void MainWindow::on_dfsButton_clicked()
- {
-     dfsOrder.clear();
+void MainWindow::on_dfsButton_clicked()
+{
+    animationTimer->stop();
+    bfsTimer->stop();
 
-     int start = ui->sourcecomboBox->currentIndex();
+    mstEdges.clear();
 
-     graphManager.DFS(start, dfsOrder);
+    dfsSteps.clear();
 
-     currentPath = dfsOrder;
+    animationIndex = 0;
 
-     animationIndex = 0;
+    int start = ui->sourcecomboBox->currentIndex();
 
-     animationTimer->start(600);
+    graphManager.DFSAnimation(start, dfsSteps);
+
+    animationTimer->start(600);
 }
 // int MainWindow::Find(int x)
 // {
@@ -913,6 +990,10 @@ void MainWindow::drawBFSLevel()
             });
         }
     }
+    ui->routeGraphicsView->fitInView(
+        scene->itemsBoundingRect(),
+        Qt::KeepAspectRatio
+        );
 }
 
 void MainWindow::restoreRoute()
@@ -921,7 +1002,7 @@ void MainWindow::restoreRoute()
     bfsTimer->stop();
 
     currentPath = shortestPath;
-
+    dfsActivePath.clear();
     drawMap(
         shortestPath,
         ui->sourcecomboBox->currentIndex(),

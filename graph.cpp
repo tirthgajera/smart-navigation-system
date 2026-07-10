@@ -14,30 +14,64 @@ void Graph::initializeGraph()
 {
     cities =
         {
-            "Chandigarh",
-            "Shimla",
-            "Narkanda",
-            "Rampur",
-            "Kalpa",
-            "Kaza",
-            "Manali"
+            "Chandigarh",      //0
+            "Mohali",          //1
+            "Panchkula",       //2
+            "Solan",           //3
+            "Shimla",          //4
+            "Kufri",           //5
+            "Narkanda",        //6
+            "Rampur",          //7
+            "Sangla",          //8
+            "Kalpa",           //9
+            "Reckong Peo",     //10
+            "Tabo",            //11
+            "Kaza",            //12
+            "Keylong",         //13
+            "Manali",          //14
+            "Kullu",           //15
+            "Mandi",           //16
+            "Bilaspur",        //17
+            "Hamirpur",        //18
+            "Dharamshala"      //19
         };
 
     graph.assign(cities.size(), {});
 
-    auto addEdge = [&](int u,int v,int w)
+    auto addEdge=[&](int u,int v,int w)
     {
         graph[u].push_back({v,w});
         graph[v].push_back({u,w});
     };
 
-    addEdge(0,1,120);
-    addEdge(1,2,65);
-    addEdge(2,3,40);
-    addEdge(3,4,90);
-    addEdge(4,5,200);
-    addEdge(5,6,180);
-    addEdge(1,6,250);
+    addEdge(0,1,12);
+    addEdge(0,2,10);
+    addEdge(1,3,55);
+    addEdge(2,3,48);
+    addEdge(3,4,46);
+    addEdge(4,5,16);
+    addEdge(5,6,60);
+    addEdge(6,7,40);
+    addEdge(7,8,92);
+    addEdge(8,9,38);
+    addEdge(9,10,12);
+    addEdge(10,11,150);
+    addEdge(11,12,50);
+    addEdge(12,13,185);
+    addEdge(13,14,115);
+    addEdge(14,15,40);
+    addEdge(15,16,72);
+    addEdge(16,17,70);
+    addEdge(17,18,63);
+    addEdge(18,19,32);
+
+    addEdge(4,14,248);
+    addEdge(16,4,145);
+    addEdge(7,14,230);
+    addEdge(3,17,105);
+    addEdge(15,19,205);
+    addEdge(2,17,92);
+    addEdge(5,15,190);
 }
 
 const vector<QString>& Graph::getCities() const
@@ -138,6 +172,39 @@ void Graph::DFS(int start,
     std::vector<bool> visited(graph.size(), false);
 
     dfsUtil(start, visited, order);
+}
+void Graph::DFSAnimation(
+    int start,
+    std::vector<DFSStep>& steps)
+{
+    steps.clear();
+
+    std::vector<bool> visited(graph.size(), false);
+
+    dfsAnimationUtil(start, -1, visited, steps);
+}
+
+void Graph::dfsAnimationUtil(
+    int node,
+    int parent,
+    std::vector<bool>& visited,
+    std::vector<DFSStep>& steps)
+{
+    visited[node] = true;
+
+    for(auto edge : graph[node])
+    {
+        int next = edge.first;
+
+        if(!visited[next])
+        {
+            steps.push_back({node, next, true});   // forward
+
+            dfsAnimationUtil(next, node, visited, steps);
+
+            steps.push_back({next, node, false});  // backtrack
+        }
+    }
 }
 void Graph::BFSLevels(int start,
                       std::vector<std::vector<int>>& levels)
